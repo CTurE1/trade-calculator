@@ -54,24 +54,20 @@ def get_color_class(value, thresholds, neutral_check=True):
 st.markdown('<div class="title">📦 Универсальный трейд-калькулятор</div>', unsafe_allow_html=True)
 st.markdown('<div class="card">', unsafe_allow_html=True)
 
-# Выбор платформы
 platform = st.radio(
     "Выберите площадку:",
     ["TM (10%)", "CS.MONEY (15%)", "Своя комиссия"],
     horizontal=True
 )
 
-# Установка комиссии
-fee = 0
 if platform == "TM (10%)":
     fee = 10.0
 elif platform == "CS.MONEY (15%)":
     fee = 15.0
 else:
-    fee = st.number_input("🔧 Ваша комиссия (%)", value=15.0, step=0.1)
+    fee = st.number_input("🛠 Ваша комиссия (%)", value=15.0, step=0.1)
 
-# Ввод цен
-buy_price = st.number_input("💸 Цена закупки", value=0.0, step=0.1)
+buy_price = st.number_input("🪙 Цена закупки", value=0.0, step=0.1)
 sell_price = st.number_input("💰 Цена продажи", value=0.0, step=0.1)
 
 # Расчёт
