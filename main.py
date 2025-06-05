@@ -20,6 +20,13 @@ st.markdown("""
         border-radius: 12px;
         margin-bottom: 30px;
     }
+    .card:empty {
+        background-color: #0e1015 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        height: 0 !important;
+    }
     .label {
         font-size: 16px;
         font-weight: 500;
