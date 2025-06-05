@@ -52,7 +52,7 @@ def get_color_class(value, thresholds, neutral_check=True):
 
 # ====== Интерфейс ======
 st.markdown('<div class="title">📦 Универсальный трейд-калькулятор</div>', unsafe_allow_html=True)
-st.markdown('<div class="card">', unsafe_allow_html=True)
+#st.markdown('<div class="card">', unsafe_allow_html=True)
 
 platform = st.radio(
     "Выберите площадку:",
