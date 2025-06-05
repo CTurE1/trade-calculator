@@ -60,7 +60,7 @@ platform = st.radio(
     horizontal=True
 )
 
-if platform == "TM (10%)":
+if platform == "Buff163 (10%)":
     fee = 10.0
 elif platform == "CS.MONEY (15%)":
     fee = 15.0
