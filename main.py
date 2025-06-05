@@ -79,3 +79,19 @@ color = get_color_class(profit_percent, {"high": 25, "low": 10})
 st.markdown(f'<div class="label">📊 Чистая прибыль:</div><div class="value {color}">{net_profit:.2f} $</div>', unsafe_allow_html=True)
 st.markdown(f'<div class="label">📈 Доходность:</div><div class="value">{profit_percent:.2f}%</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
+
+# ===== Блок: сравнение цен "Было / Стало" =====
+st.markdown('<div class="title">📊 Изменение цены</div>', unsafe_allow_html=True)
+st.markdown('<div class="card">', unsafe_allow_html=True)
+
+old_price = st.number_input("🔙 Было ($)", value=0.0, step=0.1)
+new_price = st.number_input("🔜 Стало ($)", value=0.0, step=0.1)
+
+delta = new_price - old_price
+percent_change = ((delta / old_price) * 100) if old_price != 0 else 0
+color = get_color_class(percent_change, {"high": 15, "low": 5})
+
+# Вывод в формате: 42.75$ // 16.8% // +6.15$
+st.markdown(f'<div class="value {color}">{new_price:.2f}$ // {percent_change:.2f}% // {delta:+.2f}$</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
