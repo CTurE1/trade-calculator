@@ -124,7 +124,7 @@ if proxy_input:
     
     if not converted_proxy.startswith("❌"):
         st.code(converted_proxy, language="text")
-        st.text_area("📋 Скопируйте прокси вручную или с помощью Ctrl+C", converted_proxy, height=40)
+        st.text_area("📋 Скопируйте прокси вручную или с помощью Ctrl+C", converted_proxy, height=40, key="proxy_output_area")
     else:
         st.markdown(f'<div class="value red">{converted_proxy}</div>', unsafe_allow_html=True)
 
