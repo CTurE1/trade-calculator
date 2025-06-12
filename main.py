@@ -107,25 +107,39 @@ if old_price > 0:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ===== Блок: Конвертация прокси под MarketApp =====
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown('<div class="title">🔄 Конвертация прокси под MarketApp</div>', unsafe_allow_html=True)
+# ----- helper -----
+def convert_proxy_format(proxy_str: str) -> str:
+    ip, port, user, password, *_ = (*proxy_str.split(":"), None, None)
+    if password is None:          # parts != 4
+        return ""
+    return f"http://{user}:{password}@{ip}:{port}"
 
-proxy_input = st.text_input("🧩 Введите прокси (IP:PORT:USER:PASS)", placeholder="185.239.137.172:8000:4zF6NZ:CYCU7u")
+# ----- UI -----
+st.markdown("### 🔄 Конвертация прокси под MarketApp")
 
-def convert_proxy_format(proxy_str):
-    parts = proxy_str.strip().split(":")
-    if len(parts) == 4:
-        ip, port, user, password = parts
-        return f"http://{user}:{password}@{ip}:{port}"
-    return "❌ Неверный формат. Требуется: IP:PORT:USER:PASS"
+proxy_input = st.text_input(
+    "🧩 Введите прокси (IP:PORT:USER:PASS)",
+    placeholder="185.239.137.172:8000:4zF6NZ:CYCU7u",
+    key="proxy_input",
+)
 
+# подготовим переменную в session_state – будет хранить результат конвертации
+st.session_state.setdefault("converted_proxy", "")
+
+# если пользователь ввёл что-то новое – обработаем
 if proxy_input:
-    converted_proxy = convert_proxy_format(proxy_input)
-    
-    if not converted_proxy.startswith("❌"):
-        st.code(converted_proxy, language="text")
-        st.text_area(label="📋 Скопируйте прокси вручную или с помощью Ctrl+C", value=converted_proxy, height=40, key="proxy_output_area")
+    candidate = convert_proxy_format(proxy_input.strip())
+    if candidate:
+        st.session_state.converted_proxy = candidate
+        st.code(candidate, language="text")
     else:
-        st.markdown(f'<div class="value red">{converted_proxy}</div>', unsafe_allow_html=True)
+        st.warning("❌ Неверный формат. Требуется: IP:PORT:USER:PASS")
 
-st.markdown('</div>', unsafe_allow_html=True)
+# ВИДЖЕТ СОЗДАЁТСЯ ВСЕГДА!
+st.text_area(
+    "📋 Скопируйте прокси вручную или с помощью Ctrl+C",
+    key="proxy_output_area",              # ключ остаётся тем же
+    value=st.session_state.converted_proxy,  # читаем из session_state
+    height=40,
+    disabled=False,                       # все остальные аргументы фиксированы
+)
