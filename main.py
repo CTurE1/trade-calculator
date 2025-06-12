@@ -122,26 +122,11 @@ def convert_proxy_format(proxy_str):
 if proxy_input:
     converted_proxy = convert_proxy_format(proxy_input)
     
-    # Отображение скопированного прокси
-    st.markdown(f'<div class="value green" id="proxy-output">{converted_proxy}</div>', unsafe_allow_html=True)
-
-    # Кнопка "Скопировать" с JS
-    st.markdown(f"""
-        <button onclick="copyToClipboard()" style="margin-top:10px;padding:8px 16px;background:#2ecc71;border:none;border-radius:6px;color:white;font-weight:bold;cursor:pointer;">
-            📋 Скопировать
-        </button>
-        <script>
-        function copyToClipboard() {{
-            const text = document.getElementById("proxy-output").innerText;
-            navigator.clipboard.writeText(text).then(function() {{
-                alert("Прокси скопирован: " + text);
-            }});
-        }}
-        </script>
-    """, unsafe_allow_html=True)
-
-
+    if not converted_proxy.startswith("❌"):
+        st.code(converted_proxy, language="text")
+        st.text_area("📋 Скопируйте прокси вручную или с помощью Ctrl+C", converted_proxy, height=40)
+    else:
+        st.markdown(f'<div class="value red">{converted_proxy}</div>', unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
-
 
