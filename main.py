@@ -129,4 +129,3 @@ if proxy_input:
         st.markdown(f'<div class="value red">{converted_proxy}</div>', unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
-
