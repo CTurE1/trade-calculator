@@ -84,17 +84,17 @@ with st.container():
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<div class="title">🔄 Конвертация прокси под MarketApp</div>', unsafe_allow_html=True)
 
-    # 1. Поле ввода исходной строки
+    # 1. Пользователь вводит исходную строку
     proxy_input = st.text_input(
         "🧩 Введите прокси (IP:PORT:USER:PASS)",
         placeholder="185.239.137.172:8000:4zF6NZ:CYCU7u",
-        key="proxy_input",
+        key="proxy_input",               # ← это отдельно, конфликтов не создаёт
     )
 
-    # 2. Инициализируем хранилище результата (делаем один раз)
+    # 2. Память для результата
     st.session_state.setdefault("converted_proxy", "")
-    
-    # 3. Конвертируем при любом новом вводе
+
+    # 3. Конвертация
     if proxy_input:
         parts = proxy_input.strip().split(":")
         if len(parts) == 4:
@@ -104,12 +104,12 @@ with st.container():
         else:
             st.warning("❌ Неверный формат. Требуется: IP:PORT:USER:PASS")
 
-    # 4. ОДИН виджет text_area — всегда, с фиксированными аргументами
+    # 4. Единственный text_area c НОВЫМ key
     st.text_area(
         label="📋 Скопируйте прокси вручную или с Ctrl+C",
         value=st.session_state.converted_proxy,
         height=40,
-        key="proxy_output_area",
+        key="proxy_out",                 # ← здесь новое имя!
     )
 
     st.markdown('</div>', unsafe_allow_html=True)
