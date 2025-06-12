@@ -79,36 +79,37 @@ with st.container():
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ─────────── блок «Конвертация прокси» ───────────
+# ─────────── блок «Конвертация прокси под MarketApp» ───────────
 with st.container():
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<div class="title">🔄 Конвертация прокси под MarketApp</div>', unsafe_allow_html=True)
 
+    # 1. Поле ввода исходной строки
     proxy_input = st.text_input(
         "🧩 Введите прокси (IP:PORT:USER:PASS)",
         placeholder="185.239.137.172:8000:4zF6NZ:CYCU7u",
-        key="proxy_input"
+        key="proxy_input",
     )
 
-    # создаём ключ в session_state, если ещё нет
+    # 2. Инициализируем хранилище результата (делаем один раз)
     st.session_state.setdefault("converted_proxy", "")
-
-    # обновляем, когда пользователь что-то ввёл
+    
+    # 3. Конвертируем при любом новом вводе
     if proxy_input:
-        candidate = convert_proxy_format(proxy_input)
-        if candidate:
-            st.session_state.converted_proxy = candidate
-            st.code(candidate, language="text")
+        parts = proxy_input.strip().split(":")
+        if len(parts) == 4:
+            ip, port, user, password = parts
+            st.session_state.converted_proxy = f"http://{user}:{password}@{ip}:{port}"
+            st.code(st.session_state.converted_proxy, language="text")
         else:
             st.warning("❌ Неверный формат. Требуется: IP:PORT:USER:PASS")
 
-    # ВАЖНО: виджет text_area создаётся всегда, с фиксированными параметрами
+    # 4. ОДИН виджет text_area — всегда, с фиксированными аргументами
     st.text_area(
         label="📋 Скопируйте прокси вручную или с Ctrl+C",
         value=st.session_state.converted_proxy,
         height=40,
         key="proxy_output_area",
-        disabled=False
     )
 
     st.markdown('</div>', unsafe_allow_html=True)
