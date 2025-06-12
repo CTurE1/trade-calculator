@@ -37,9 +37,9 @@ def convert_proxy_format(proxy: str) -> str:
     return ""
 
 # ─────────── подготовка session_state ───────────
-if "converted_proxy" in st.session_state and not isinstance(st.session_state["converted_proxy"], str):
-    st.session_state["converted_proxy"] = ""
 st.session_state.setdefault("converted_proxy", "")
+if not isinstance(st.session_state["converted_proxy"], str):
+    st.session_state["converted_proxy"] = ""
 
 # ─────────── заголовок ───────────
 st.markdown('<div class="title">📦 Универсальный трейд-калькулятор</div>', unsafe_allow_html=True)
@@ -107,7 +107,7 @@ with st.container():
 
     st.text_area(
         label="📋 Скопируйте прокси вручную или с Ctrl+C",
-        value=str(st.session_state.get("converted_proxy", "")),  # <— всегда строка
+        value=st.session_state["converted_proxy"],
         height=40,
         key="proxy_output_area"
     )
