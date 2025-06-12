@@ -106,10 +106,11 @@ with st.container():
 
     # 4. Единственный text_area c НОВЫМ key
     st.text_area(
-        label="📋 Скопируйте прокси вручную или с Ctrl+C",
-        value=st.session_state.converted_proxy,
-        height=40,
-        key="proxy_out",                 # ← здесь новое имя!
-    )
+    label="📋 Скопируйте прокси вручную или с Ctrl+C",
+    value=str(st.session_state.get("converted_proxy", "")),  # ← приведение к str
+    height=40,
+    key="proxy_output_area",
+)
+
 
     st.markdown('</div>', unsafe_allow_html=True)
