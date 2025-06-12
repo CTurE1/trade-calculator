@@ -106,5 +106,23 @@ if old_price > 0:
     st.markdown(f'<div class="value {color}">{new_price:.2f}$ // {percent_change:.2f}% // {delta:+.2f}$</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
+# ===== Блок: Конвертация прокси под MarketApp =====
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.markdown('<div class="title">🔄 Конвертация прокси под MarketApp</div>', unsafe_allow_html=True)
+
+proxy_input = st.text_input("🧩 Введите прокси (IP:PORT:USER:PASS)", placeholder="185.239.137.172:8000:4zF6NZ:CYCU7u")
+
+def convert_proxy_format(proxy_str):
+    parts = proxy_str.strip().split(":")
+    if len(parts) == 4:
+        ip, port, user, password = parts
+        return f"http://{user}:{password}@{ip}:{port}"
+    return "❌ Неверный формат. Требуется: IP:PORT:USER:PASS"
+
+if proxy_input:
+    converted_proxy = convert_proxy_format(proxy_input)
+    st.markdown(f'<div class="value green">{converted_proxy}</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 
