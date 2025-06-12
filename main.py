@@ -1,145 +1,114 @@
 import streamlit as st
 
+# ─────────── базовые настройки ───────────
 st.set_page_config(page_title="🧮 Трейд-калькулятор", layout="centered")
 
-# ====== Стили ======
+# ─────────── стили ───────────
 st.markdown("""
 <style>
-    body {
-        background-color: #0e1015;
-    }
-    .title {
-        font-size: 24px;
-        font-weight: bold;
-        color: white;
-        margin-bottom: 15px;
-    }
-    .card {
-        background-color: #1b1f26;
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 30px;
-    }
-    .card:empty {
-        background-color: #0e1015 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        border: none !important;
-        height: 0 !important;
-    }
-    .label {
-        font-size: 16px;
-        font-weight: 500;
-        color: #cccccc;
-    }
-    .value {
-        font-size: 20px;
-        font-weight: bold;
-        margin-top: 10px;
-    }
-    .green { color: #2ecc71; }
-    .orange { color: #f39c12; }
-    .red { color: #e74c3c; }
-    .neutral { color: #bdc3c7; }
+    body            { background-color:#0e1015; }
+    .title          { font-size:24px;font-weight:bold;color:white;margin-bottom:15px; }
+    .card           { background-color:#1b1f26;padding:20px;border-radius:12px;margin-bottom:30px; }
+    .card:empty     { background-color:#0e1015!important;padding:0!important;margin:0!important;border:none!important;height:0!important; }
+    .label          { font-size:16px;font-weight:500;color:#cccccc; }
+    .value          { font-size:20px;font-weight:bold;margin-top:10px; }
+    .green          { color:#2ecc71; }
+    .orange         { color:#f39c12; }
+    .red            { color:#e74c3c; }
+    .neutral        { color:#bdc3c7; }
 </style>
 """, unsafe_allow_html=True)
 
-
-# ====== Функции ======
-def get_color_class(value, thresholds, neutral_check=True):
+# ─────────── функции ───────────
+def get_color_class(value: float, thresholds: dict, neutral_check: bool = True) -> str:
     if neutral_check and value == 0:
         return "neutral"
     if value > thresholds["high"]:
         return "green"
     elif value > thresholds["low"]:
         return "orange"
-    else:
-        return "red"
+    return "red"
+
+def convert_proxy_format(proxy_str: str) -> str:
+    """Преобразует IP:PORT:USER:PASS → http://USER:PASS@IP:PORT"""
+    parts = proxy_str.strip().split(":")
+    if len(parts) == 4:
+        ip, port, user, password = parts
+        return f"http://{user}:{password}@{ip}:{port}"
+    return ""
 
 
-# ====== Интерфейс ======
+# ─────────── заголовок ───────────
 st.markdown('<div class="title">📦 Универсальный трейд-калькулятор</div>', unsafe_allow_html=True)
-#st.markdown('<div class="card">', unsafe_allow_html=True)
 
+# ─────────── блок «Комиссия / Прибыль» ───────────
 platform = st.radio(
     "Выберите площадку:",
-    ["Buff163 (10%)", "CS.MONEY (15%)", "Своя комиссия"],
+    ["Buff163 (10 %)", "CS.MONEY (15 %)", "Своя комиссия"],
     horizontal=True
 )
 
-if platform == "Buff163 (10%)":
-    fee = 10.0
-elif platform == "CS.MONEY (15%)":
-    fee = 15.0
-else:
+fee = 10.0 if platform == "Buff163 (10 %)" else 15.0
+if platform == "Своя комиссия":
     fee = st.number_input("🛠 Ваша комиссия (%)", value=15.0, step=0.1)
 
-buy_price = st.number_input("🪙 Цена закупки", value=0.0, step=0.1)
+buy_price  = st.number_input("🪙 Цена закупки",  value=0.0, step=0.1)
 sell_price = st.number_input("💰 Цена продажи", value=0.0, step=0.1)
 
-# Расчёт
-net_profit = (sell_price * (1 - fee / 100)) - buy_price
-profit_percent = ((net_profit / buy_price) * 100) if buy_price != 0 else 0
-color = get_color_class(profit_percent, {"high": 25, "low": 10})
+net_profit     = (sell_price * (1 - fee/100)) - buy_price
+profit_percent = ((net_profit / buy_price) * 100) if buy_price else 0
+color_np       = get_color_class(profit_percent, {"high":25, "low":10})
 
-# Вывод результатов
-st.markdown(f'<div class="label">📊 Чистая прибыль:</div><div class="value {color}">{net_profit:.2f} $</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="label">📊 Чистая прибыль:</div><div class="value {color_np}">{net_profit:.2f} $</div>', unsafe_allow_html=True)
 st.markdown(f'<div class="label">📈 Доходность:</div><div class="value">{profit_percent:.2f}%</div>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
 
-# ===== Блок: сравнение цен "Было / Стало" =====
+# ─────────── блок «Изменение цены» ───────────
 with st.container():
     st.markdown('<div class="card">', unsafe_allow_html=True)
-
     st.markdown('<div class="title">📊 Изменение цены</div>', unsafe_allow_html=True)
 
-old_price = st.number_input("🔙 Было ($)", value=0.0, step=0.1, key="old_price")
-new_price = st.number_input("🔜 Стало ($)", value=0.0, step=0.1, key="new_price")
+    old_price = st.number_input("🔙 Было ($)",  value=0.0, step=0.1, key="old_price")
+    new_price = st.number_input("🔜 Стало ($)", value=0.0, step=0.1, key="new_price")
 
-if old_price > 0:
-    delta = new_price - old_price
-    percent_change = (delta / old_price) * 100
-    color = get_color_class(percent_change, {"high": 15, "low": 5})
+    if old_price > 0:
+        delta           = new_price - old_price
+        percent_change  = (delta / old_price) * 100
+        color_pc        = get_color_class(percent_change, {"high":15, "low":5})
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="title">📊 Изменение цены</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="value {color}">{new_price:.2f}$ // {percent_change:.2f}% // {delta:+.2f}$</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="value {color_pc}">{new_price:.2f}$ // {percent_change:.2f}% // {delta:+.2f}$</div>', unsafe_allow_html=True)
+
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ===== Блок: Конвертация прокси под MarketApp =====
-# ----- helper -----
-def convert_proxy_format(proxy_str: str) -> str:
-    ip, port, user, password, *_ = (*proxy_str.split(":"), None, None)
-    if password is None:          # parts != 4
-        return ""
-    return f"http://{user}:{password}@{ip}:{port}"
+# ─────────── блок «Конвертация прокси» ───────────
+with st.container():
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="title">🔄 Конвертация прокси под MarketApp</div>', unsafe_allow_html=True)
 
-# ----- UI -----
-st.markdown("### 🔄 Конвертация прокси под MarketApp")
+    proxy_input = st.text_input(
+        "🧩 Введите прокси (IP:PORT:USER:PASS)",
+        placeholder="185.239.137.172:8000:4zF6NZ:CYCU7u",
+        key="proxy_input"
+    )
 
-proxy_input = st.text_input(
-    "🧩 Введите прокси (IP:PORT:USER:PASS)",
-    placeholder="185.239.137.172:8000:4zF6NZ:CYCU7u",
-    key="proxy_input",
-)
+    # создаём ключ в session_state, если ещё нет
+    st.session_state.setdefault("converted_proxy", "")
 
-# подготовим переменную в session_state – будет хранить результат конвертации
-st.session_state.setdefault("converted_proxy", "")
+    # обновляем, когда пользователь что-то ввёл
+    if proxy_input:
+        candidate = convert_proxy_format(proxy_input)
+        if candidate:
+            st.session_state.converted_proxy = candidate
+            st.code(candidate, language="text")
+        else:
+            st.warning("❌ Неверный формат. Требуется: IP:PORT:USER:PASS")
 
-# если пользователь ввёл что-то новое – обработаем
-if proxy_input:
-    candidate = convert_proxy_format(proxy_input.strip())
-    if candidate:
-        st.session_state.converted_proxy = candidate
-        st.code(candidate, language="text")
-    else:
-        st.warning("❌ Неверный формат. Требуется: IP:PORT:USER:PASS")
+    # ВАЖНО: виджет text_area создаётся всегда, с фиксированными параметрами
+    st.text_area(
+        label="📋 Скопируйте прокси вручную или с Ctrl+C",
+        value=st.session_state.converted_proxy,
+        height=40,
+        key="proxy_output_area",
+        disabled=False
+    )
 
-# ВИДЖЕТ СОЗДАЁТСЯ ВСЕГДА!
-st.text_area(
-    "📋 Скопируйте прокси вручную или с помощью Ctrl+C",
-    key="proxy_output_area",              # ключ остаётся тем же
-    value=st.session_state.converted_proxy,  # читаем из session_state
-    height=40,
-    disabled=False,                       # все остальные аргументы фиксированы
-)
+    st.markdown('</div>', unsafe_allow_html=True)
