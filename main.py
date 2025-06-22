@@ -76,15 +76,35 @@ with st.container():
     new_price = st.number_input("🔜 Стало ($)", value=0.0, step=0.1, key="new_price")
 
     if old_price > 0:
+        # ── без комиссии ──
         delta          = new_price - old_price
         percent_change = (delta / old_price) * 100
         color_pc       = get_color_class(percent_change, {"high": 15, "low": 5})
 
-        st.markdown(f'<div class="value {color_pc}">'
-                    f'{new_price:.2f}$ // {percent_change:.2f}% // {delta:+.2f}$'
-                    f'</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="value {color_pc}">'
+            f'{new_price:.2f}$ // {percent_change:.2f}% // {delta:+.2f}$'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+        # ── с комиссией 5 % ──
+        fee_percent    = 5.0                        # меняйте здесь, если нужно другое значение
+        adj_price      = new_price * (1 - fee_percent / 100)
+        delta_fee      = adj_price - old_price
+        percent_fee    = (delta_fee / old_price) * 100
+        color_fee      = get_color_class(percent_fee, {"high": 15, "low": 5})
+
+        st.markdown(
+            f'<div class="value {color_fee}">'
+            f'{adj_price:.2f}$ // {percent_fee:.2f}% // {delta_fee:+.2f}$ '
+            f'(с учётом комиссии {fee_percent:.0f}%)'
+            f'</div>',
+            unsafe_allow_html=True
+        )
 
     st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ─────────── блок «Конвертация прокси» ───────────
 with st.container():
