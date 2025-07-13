@@ -8,13 +8,15 @@ st.markdown("""
 <style>
  body { background-color:#0e1015; }
  .title   { font-size:24px;font-weight:bold;color:#ffffff;margin-bottom:15px; }
- .card    { background-color:#1b1f26;padding:20px;border-radius:2px;margin-bottom:30px; }
+ .card    { background-color:#1b1f26;padding:20px;border-radius:12px;margin-bottom:30px; }
  .label   { font-size:16px;font-weight:500;color:#cccccc; }
  .value   { font-size:20px;font-weight:bold;margin-top:10px; }
  .green   { color:#2ecc71; }
  .orange  { color:#f39c12; }
  .red     { color:#e74c3c; }
  .neutral { color:#bdc3c7; }
+ .copy-btn { background-color:#2ecc71;color:white;padding:5px 10px;border:none;border-radius:5px;cursor:pointer; }
+ .copy-btn:hover { background-color:#27ae60; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -50,7 +52,7 @@ fee = 10.0 if platform == "Buff163 (10 %)" else 15.0
 if platform == "Своя комиссия":
     fee = st.number_input("Ваша комиссия (%)", value=15.0, step=0.1)
 
-buy_price  = st.number_input("Цена закупки",  value=0.0, step=0.1)
+buy_price  = st.number_input("Цена закупки", value=0.0, step=0.1)
 sell_price = st.number_input("Цена продажи", value=0.0, step=0.1)
 
 net_profit     = (sell_price * (1 - fee / 100)) - buy_price
@@ -67,7 +69,7 @@ with st.container():
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<div class="title">Изменение цены</div>', unsafe_allow_html=True)
 
-    old_price = st.number_input("Было ($)",  value=0.0, step=0.1, key="old_price")
+    old_price = st.number_input("Было ($)", value=0.0, step=0.1, key="old_price")
     new_price = st.number_input("Стало ($)", value=0.0, step=0.1, key="new_price")
 
     if old_price > 0:
@@ -116,6 +118,23 @@ with st.container():
         if converted:
             st.markdown("Скопируйте прокси вручную или с Ctrl+C")
             st.text_area(label="", value=converted, height=80, key="converted_proxy", placeholder="Converted proxy will appear here")
+            # Добавляем кнопку копирования с JavaScript
+            st.markdown(
+                f"""
+                <button class="copy-btn" onclick="navigator.clipboard.writeText('{converted}')">
+                    Копировать
+                </button>
+                <script>
+                    function copyToClipboard(text) {{
+                        navigator.clipboard.writeText(text).then(
+                            function() {{ alert("Скопировано в буфер обмена!"); }},
+                            function(err) {{ alert("Ошибка копирования: " + err); }}
+                        );
+                    }}
+                </script>
+                """,
+                unsafe_allow_html=True
+            )
         else:
             st.warning("Неверный формат. Требуется: IP:PORT:USER:PASS")
 
