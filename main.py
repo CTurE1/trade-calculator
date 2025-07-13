@@ -65,22 +65,26 @@ st.markdown(f'<div class="label">📈 Доходность:</div>'
 # ─────────── блок «Изменение цены» ───────────
 with st.container():
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="title">📊 Изменение цены</div>', unsafe_allow_html=True)
+    st.markdown('<div class="title">🔄 Конвертация прокси под MarketApp</div>', unsafe_allow_html=True)
 
-    old_price = st.number_input("🔙 Было ($)",  value=0.0, step=0.1, key="old_price")
-    new_price = st.number_input("🔜 Стало ($)", value=0.0, step=0.1, key="new_price")
+    proxy_input = st.text_input(
+        "🧩 Введите прокси (IP:PORT:USER:PASS)",
+        placeholder="185.239.137.172:8000:4zF6NZ:CYCU7u",
+        key="proxy_input"
+    )
 
-    if old_price > 0:
-        # ── без комиссии ──
-        delta          = new_price - old_price
-        percent_change = (delta / old_price) * 100
-        color_pc       = get_color_class(percent_change, {"high": 15, "low": 5})
+    if proxy_input:
+        converted = convert_proxy_format(proxy_input)
+        if converted:
+            st.session_state["converted_proxy"] = converted
+            st.markdown("📋 Скопируйте прокси вручную или с Ctrl+C")
+        else:
+            st.warning("❌ Неверный формат. Требуется: IP:PORT:USER:PASS")
 
-        st.markdown(
-            f'<div class="value {color_pc}">'
-            f'{new_price:.2f}$ // {percent_change:.2f}% // {delta:+.2f}$'
-            f'</div>',
-            unsafe_allow_html=True
+    # Используем st.text_area с пустой меткой
+    st.text_area(label="", height=80, key="converted_proxy", placeholder="Converted proxy will appear here")
+
+    st.markdown('</div>', unsafe_allow_html=True)
         )
 
         # ── с комиссией 5 % ──
