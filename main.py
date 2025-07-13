@@ -127,7 +127,7 @@ with st.container():
 
     st.text_area(
         label="📋 Скопируйте прокси вручную или с Ctrl+C",
-        height=40,
+        height=80,
         key="converted_proxy"
     )
 
