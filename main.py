@@ -29,17 +29,12 @@ def get_color_class(value: float, thresholds: dict, neutral_check: bool = True) 
     return "red"
 
 def convert_proxy_format(proxy: str) -> str:
-    """IP:PORT:USER:PASS → http://USER:PASS@IP:PORT  (возвращает '' при ошибке)"""
+    """IP:PORT:USER:PASS → [invalid url, do not cite]  (возвращает '' при ошибке)"""
     parts = proxy.strip().split(":")
     if len(parts) == 4:
         ip, port, user, password = parts
-        return f"http://{user}:{password}@{ip}:{port}"
+        return f"[invalid url, do not cite]
     return ""
-
-# ─────────── подготовка session_state ───────────
-st.session_state.setdefault("converted_proxy", "")
-if not isinstance(st.session_state["converted_proxy"], str):
-    st.session_state["converted_proxy"] = ""
 
 # ─────────── заголовок ───────────
 st.markdown('<div class="title">📦 Универсальный трейд-калькулятор</div>', unsafe_allow_html=True)
@@ -105,7 +100,6 @@ with st.container():
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-
 # ─────────── блок «Конвертация прокси» ───────────
 with st.container():
     st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -120,15 +114,9 @@ with st.container():
     if proxy_input:
         converted = convert_proxy_format(proxy_input)
         if converted:
-            st.session_state["converted_proxy"] = converted
-            st.code(converted, language="text")
+            st.write("📋 Скопируйте прокси вручную или с Ctrl+C")
+            st.write(converted)
         else:
             st.warning("❌ Неверный формат. Требуется: IP:PORT:USER:PASS")
-
-    st.text_area(
-        label="📋 Скопируйте прокси вручную или с Ctrl+C",
-        height=80,
-        key="converted_proxy"
-    )
 
     st.markdown('</div>', unsafe_allow_html=True)
