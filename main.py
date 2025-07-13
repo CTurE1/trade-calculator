@@ -121,15 +121,26 @@ with st.container():
         converted = convert_proxy_format(proxy_input)
         if converted:
             st.markdown("Скопируйте прокси с помощью кнопки или Ctrl+C")
-            st.code(converted, language="text")
-            # Кнопка для копирования с уведомлением через st.session_state
-            if st.button("Копировать прокси"):
-                st.session_state.copy_success = True
-                # Эмулируем копирование (Streamlit не поддерживает прямой доступ к буферу обмена)
-                # Пользователь всё равно может использовать кнопку копирования в st.code
+            st.text_area(label="", value=converted, height=80, key="converted_proxy", placeholder="Converted proxy will appear here")
+            # Кнопка копирования с JavaScript и уведомлением
+            st.markdown(
+                f"""
+                <button class="copy-btn" onclick="navigator.clipboard.writeText('{converted}').then(() => {{
+                    document.getElementById('copy-status').innerText = 'Скопировано!';
+                    setTimeout(() => {{ document.getElementById('copy-status').innerText = ''; }}, 2000);
+                }}, () => {{
+                    document.getElementById('copy-status').innerText = 'Ошибка копирования!';
+                    setTimeout(() => {{ document.getElementById('copy-status').innerText = ''; }}, 2000);
+                }})">
+                    Копировать
+                </button>
+                <span id="copy-status" style="color: #2ecc71; margin-left: 10px;"></span>
+                """,
+                unsafe_allow_html=True
+            )
+            # Дополнительное уведомление через Streamlit
             if st.session_state.copy_success:
                 st.success("Прокси скопирован в буфер обмена! (Используйте Ctrl+V для вставки)")
-                # Сбрасываем состояние через 3 секунды
                 st.session_state.copy_success = False
         else:
             st.warning("Неверный формат. Требуется: IP:PORT:USER:PASS")
