@@ -122,35 +122,25 @@ with st.container():
         converted = convert_proxy_format(proxy_input)
         if converted:
             st.session_state["converted_proxy"] = converted
-            st.code(converted, language="text")          # встроенная копир-иконка
+            st.code(converted, language="text")          # копирка-иконка
         else:
             st.warning("❌ Неверный формат. Требуется: IP:PORT:USER:PASS")
 
-    # поле для ручного копирования / правки
     st.text_area(
-        label="📋 Скопируйте прокси вручную или с Ctrl+C",
+        "📋 Скопируйте прокси вручную или с Ctrl+C",
         value=st.session_state["converted_proxy"],
         height=100,
         key="proxy_display",
         disabled=True
     )
 
-    # ───── наша кнопка на JS → буфер обмена ─────
+    # ▶︎ новая кнопка-копирка
     proxy = st.session_state.get("converted_proxy", "")
     if proxy:
-        safe_text = json.dumps(proxy)   # экранируем кавычки
-        components.html(f"""
-            <button style="
-                    background:#1b1f26;
-                    color:#fff;
-                    border:1px solid #444;
-                    border-radius:6px;
-                    padding:8px 16px;
-                    cursor:pointer;"
-                onclick="navigator.clipboard.writeText({safe_text});">
-                📋 Копировать прокси
-            </button>
-        """, height=45)
+        st_copy_to_clipboard(proxy,
+                             label="📋 Копировать прокси",
+                             icon="",
+                             key="copy_btn_proxy")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
