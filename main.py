@@ -92,4 +92,31 @@ with st.container():
 
         st.markdown(
             f'<div class="value {color_fee}">'
-            f'{adj_price:.2f}$ // {percent_fee:.2f}% //
+            f'{adj_price:.2f}$ // {percent_fee:.2f}% // {delta_fee:+.2f}$ '
+            f'(с учётом комиссии {fee_percent:.0f}%)'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ─────────── блок «Конвертация прокси» ───────────
+with st.container():
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="title">Конвертация прокси под MarketApp</div>', unsafe_allow_html=True)
+
+    proxy_input = st.text_input(
+        "Введите прокси (IP:PORT:USER:PASS)",
+        placeholder="185.239.137.172:8000:4zF6NZ:CYCU7u",
+        key="proxy_input"
+    )
+
+    if proxy_input:
+        converted = convert_proxy_format(proxy_input)
+        if converted:
+            st.markdown("Скопируйте прокси с помощью кнопки или Ctrl+C")
+            st.code(converted, language="text")
+        else:
+            st.warning("Неверный формат. Требуется: IP:PORT:USER:PASS")
+
+    st.markdown('</div>', unsafe_allow_html=True)
