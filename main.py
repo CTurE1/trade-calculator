@@ -127,8 +127,7 @@ with st.container():
 
 st.text_area(
     label="📋 Скопируйте прокси вручную или с Ctrl+C",
-    value=st.session_state["converted_proxy"],  # если нужно сразу подставлять строку
-    height=80,
+    value=st.session_state["converted_proxy"],  # если нужно сразу подставлять строк
     key="converted_proxy"
 )
 
