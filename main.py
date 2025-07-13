@@ -127,9 +127,11 @@ with st.container():
 
 st.text_area(
     label="📋 Скопируйте прокси вручную или с Ctrl+C",
-    value=st.session_state["converted_proxy"],  # если нужно сразу подставлять строк
+    value=st.session_state["converted_proxy"],  # если нужно сразу подставлять строку
+    height=80,
     key="converted_proxy"
 )
+
 
 
     st.markdown('</div>', unsafe_allow_html=True)
