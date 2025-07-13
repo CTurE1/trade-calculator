@@ -15,8 +15,6 @@ st.markdown("""
  .orange  { color:#f39c12; }
  .red     { color:#e74c3c; }
  .neutral { color:#bdc3c7; }
- .copy-btn { background-color:#2ecc71;color:white;padding:5px 10px;border:none;border-radius:5px;cursor:pointer; }
- .copy-btn:hover { background-color:#27ae60; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -94,48 +92,4 @@ with st.container():
 
         st.markdown(
             f'<div class="value {color_fee}">'
-            f'{adj_price:.2f}$ // {percent_fee:.2f}% // {delta_fee:+.2f}$ '
-            f'(с учётом комиссии {fee_percent:.0f}%)'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ─────────── блок «Конвертация прокси» ───────────
-with st.container():
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="title">Конвертация прокси под MarketApp</div>', unsafe_allow_html=True)
-
-    proxy_input = st.text_input(
-        "Введите прокси (IP:PORT:USER:PASS)",
-        placeholder="185.239.137.172:8000:4zF6NZ:CYCU7u",
-        key="proxy_input"
-    )
-
-    if proxy_input:
-        converted = convert_proxy_format(proxy_input)
-        if converted:
-            st.markdown("Скопируйте прокси вручную или с Ctrl+C")
-            st.text_area(label="", value=converted, height=80, key="converted_proxy", placeholder="Converted proxy will appear here")
-            # Добавляем кнопку копирования с JavaScript
-            st.markdown(
-                f"""
-                <button class="copy-btn" onclick="navigator.clipboard.writeText('{converted}')">
-                    Копировать
-                </button>
-                <script>
-                    function copyToClipboard(text) {{
-                        navigator.clipboard.writeText(text).then(
-                            function() {{ alert("Скопировано в буфер обмена!"); }},
-                            function(err) {{ alert("Ошибка копирования: " + err); }}
-                        );
-                    }}
-                </script>
-                """,
-                unsafe_allow_html=True
-            )
-        else:
-            st.warning("Неверный формат. Требуется: IP:PORT:USER:PASS")
-
-    st.markdown('</div>', unsafe_allow_html=True)
+            f'{adj_price:.2f}$ // {percent_fee:.2f}% //
