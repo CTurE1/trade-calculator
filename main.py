@@ -19,8 +19,8 @@ st.markdown(
     .neutral { color:#bdc3c7; }
 
     /* Оставляем у copy-кнопки только иконку */
-    button[data-testid="stCodeCopyButton"] span {display:none !important;}
-    button[data-testid="stCodeCopyButton"] svg {margin-right:0 !important;}
+    #button[data-testid="stCodeCopyButton"] span {display:none !important;}
+    #button[data-testid="stCodeCopyButton"] svg {margin-right:0 !important;}
     </style>
     """,
     unsafe_allow_html=True,
