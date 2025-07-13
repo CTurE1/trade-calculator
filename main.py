@@ -122,7 +122,7 @@ with st.container():
         converted = convert_proxy_format(proxy_input)
         if converted:
             st.session_state["converted_proxy"] = converted
-            st.code(converted, language="text")          # копирка-иконка
+            st.code(converted, language="text")      # ← одна копир-иконка
         else:
             st.warning("❌ Неверный формат. Требуется: IP:PORT:USER:PASS")
 
@@ -133,14 +133,6 @@ with st.container():
         key="proxy_display",
         disabled=True
     )
-
-    # ▶︎ новая кнопка-копирка
-    proxy = st.session_state.get("converted_proxy", "")
-    if proxy:
-        st_copy_to_clipboard(proxy,
-                             label="📋 Копировать прокси",
-                             icon="",
-                             key="copy_btn_proxy")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
