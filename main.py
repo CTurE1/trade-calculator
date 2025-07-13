@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 
 # ─────────── базовые настройки ───────────
 st.set_page_config(page_title="Трейд-калькулятор", layout="centered")
@@ -15,11 +16,9 @@ st.markdown("""
  .orange  { color:#f39c12; }
  .red     { color:#e74c3c; }
  .neutral { color:#bdc3c7; }
- .copy-btn { background-color:#2ecc71;color:white;padding:5px 10px;border:none;border-radius:5px;cursor:pointer; }
- .copy-btn:hover { background-color:#27ae60; }
- .copy-status { color:#2ecc71;margin-left:10px;font-weight:500; }
- .fade-in-out {
+ .success-message {
      animation: fadeInOut 2s ease-in-out;
+     display: inline-block;
  }
  @keyframes fadeInOut {
      0% { opacity: 0; }
@@ -47,6 +46,12 @@ def convert_proxy_format(proxy: str) -> str:
         ip, port, user, password = parts
         return f"http://{user}:{password}@{ip}:{port}"
     return ""
+
+# ─────────── инициализация session_state ───────────
+if "copy_success" not in st.session_state:
+    st.session_state.copy_success = False
+if "last_copy_time" not in st.session_state:
+    st.session_state.last_copy_time = 0
 
 # ─────────── заголовок ───────────
 st.markdown('<div class="title">Универсальный трейд-калькулятор</div>', unsafe_allow_html=True)
@@ -126,32 +131,15 @@ with st.container():
     if proxy_input:
         converted = convert_proxy_format(proxy_input)
         if converted:
-            st.markdown("Скопируйте прокси с помощью кнопки или Ctrl+C")
-            st.text_area(label="", value=converted, height=80, key="converted_proxy", placeholder="Converted proxy will appear here")
-            # Кнопка копирования с JavaScript и анимированным уведомлением
-            st.markdown(
-                f"""
-                <button class="copy-btn" onclick="navigator.clipboard.writeText('{converted}').then(() => {{
-                    document.getElementById('copy-status').innerText = 'Скопировано!';
-                    document.getElementById('copy-status').classList.add('fade-in-out');
-                    setTimeout(() => {{ 
-                        document.getElementById('copy-status').innerText = '';
-                        document.getElementById('copy-status').classList.remove('fade-in-out');
-                    }}, 2000);
-                }}, () => {{
-                    document.getElementById('copy-status').innerText = 'Ошибка копирования!';
-                    document.getElementById('copy-status').classList.add('fade-in-out');
-                    setTimeout(() => {{ 
-                        document.getElementById('copy-status').innerText = '';
-                        document.getElementById('copy-status').classList.remove('fade-in-out');
-                    }}, 2000);
-                }})">
-                    Копировать
-                </button>
-                <span id="copy-status" style="color: #2ecc71; margin-left: 10px;"></span>
-                """,
-                unsafe_allow_html=True
-            )
+            st.markdown("Скопируйте прокси с помощью иконки или Ctrl+C")
+            st.code(converted, language="text")
+            # Проверяем, было ли копирование (на основе времени и действия пользователя)
+            current_time = time.time()
+            if current_time - st.session_state.last_copy_time > 2:  # Сброс каждые 2 секунды
+                st.session_state.copy_success = False
+            if st.session_state.copy_success:
+                st.markdown('<div class="success-message">Скопировано!</div>', unsafe_allow_html=True)
+                st.session_state.last_copy_time = current_time
         else:
             st.warning("Неверный формат. Требуется: IP:PORT:USER:PASS")
 
