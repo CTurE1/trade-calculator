@@ -17,6 +17,16 @@ st.markdown("""
  .neutral { color:#bdc3c7; }
  .copy-btn { background-color:#2ecc71;color:white;padding:5px 10px;border:none;border-radius:5px;cursor:pointer; }
  .copy-btn:hover { background-color:#27ae60; }
+ .copy-status { color:#2ecc71;margin-left:10px;font-weight:500; }
+ .fade-in-out {
+     animation: fadeInOut 2s ease-in-out;
+ }
+ @keyframes fadeInOut {
+     0% { opacity: 0; }
+     10% { opacity: 1; }
+     90% { opacity: 1; }
+     100% { opacity: 0; }
+ }
 </style>
 """, unsafe_allow_html=True)
 
@@ -37,10 +47,6 @@ def convert_proxy_format(proxy: str) -> str:
         ip, port, user, password = parts
         return f"http://{user}:{password}@{ip}:{port}"
     return ""
-
-# ─────────── инициализация session_state ───────────
-if "copy_success" not in st.session_state:
-    st.session_state.copy_success = False
 
 # ─────────── заголовок ───────────
 st.markdown('<div class="title">Универсальный трейд-калькулятор</div>', unsafe_allow_html=True)
@@ -122,15 +128,23 @@ with st.container():
         if converted:
             st.markdown("Скопируйте прокси с помощью кнопки или Ctrl+C")
             st.text_area(label="", value=converted, height=80, key="converted_proxy", placeholder="Converted proxy will appear here")
-            # Кнопка копирования с JavaScript и уведомлением
+            # Кнопка копирования с JavaScript и анимированным уведомлением
             st.markdown(
                 f"""
                 <button class="copy-btn" onclick="navigator.clipboard.writeText('{converted}').then(() => {{
                     document.getElementById('copy-status').innerText = 'Скопировано!';
-                    setTimeout(() => {{ document.getElementById('copy-status').innerText = ''; }}, 2000);
+                    document.getElementById('copy-status').classList.add('fade-in-out');
+                    setTimeout(() => {{ 
+                        document.getElementById('copy-status').innerText = '';
+                        document.getElementById('copy-status').classList.remove('fade-in-out');
+                    }}, 2000);
                 }}, () => {{
                     document.getElementById('copy-status').innerText = 'Ошибка копирования!';
-                    setTimeout(() => {{ document.getElementById('copy-status').innerText = ''; }}, 2000);
+                    document.getElementById('copy-status').classList.add('fade-in-out');
+                    setTimeout(() => {{ 
+                        document.getElementById('copy-status').innerText = '';
+                        document.getElementById('copy-status').classList.remove('fade-in-out');
+                    }}, 2000);
                 }})">
                     Копировать
                 </button>
@@ -138,10 +152,6 @@ with st.container():
                 """,
                 unsafe_allow_html=True
             )
-            # Дополнительное уведомление через Streamlit
-            if st.session_state.copy_success:
-                st.success("Прокси скопирован в буфер обмена! (Используйте Ctrl+V для вставки)")
-                st.session_state.copy_success = False
         else:
             st.warning("Неверный формат. Требуется: IP:PORT:USER:PASS")
 
