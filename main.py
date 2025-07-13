@@ -1,4 +1,6 @@
+import json, streamlit.components.v1 as components, streamlit as st
 import streamlit as st
+
 
 # ─────────── базовые настройки ───────────
 st.set_page_config(page_title="🧮 Трейд-калькулятор", layout="centered")
@@ -120,10 +122,11 @@ with st.container():
         converted = convert_proxy_format(proxy_input)
         if converted:
             st.session_state["converted_proxy"] = converted
-            st.code(converted, language="text")  # ← встроенная кнопка копирования (работает)
+            st.code(converted, language="text")          # встроенная копир-иконка
         else:
             st.warning("❌ Неверный формат. Требуется: IP:PORT:USER:PASS")
 
+    # поле для ручного копирования / правки
     st.text_area(
         label="📋 Скопируйте прокси вручную или с Ctrl+C",
         value=st.session_state["converted_proxy"],
@@ -132,4 +135,22 @@ with st.container():
         disabled=True
     )
 
+    # ───── наша кнопка на JS → буфер обмена ─────
+    proxy = st.session_state.get("converted_proxy", "")
+    if proxy:
+        safe_text = json.dumps(proxy)   # экранируем кавычки
+        components.html(f"""
+            <button style="
+                    background:#1b1f26;
+                    color:#fff;
+                    border:1px solid #444;
+                    border-radius:6px;
+                    padding:8px 16px;
+                    cursor:pointer;"
+                onclick="navigator.clipboard.writeText({safe_text});">
+                📋 Копировать прокси
+            </button>
+        """, height=45)
+
     st.markdown('</div>', unsafe_allow_html=True)
+
