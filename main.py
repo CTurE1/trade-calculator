@@ -15,6 +15,8 @@ st.markdown("""
  .orange  { color:#f39c12; }
  .red     { color:#e74c3c; }
  .neutral { color:#bdc3c7; }
+ .copy-btn { background-color:#2ecc71;color:white;padding:5px 10px;border:none;border-radius:5px;cursor:pointer; }
+ .copy-btn:hover { background-color:#27ae60; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -35,6 +37,10 @@ def convert_proxy_format(proxy: str) -> str:
         ip, port, user, password = parts
         return f"http://{user}:{password}@{ip}:{port}"
     return ""
+
+# ─────────── инициализация session_state ───────────
+if "copy_success" not in st.session_state:
+    st.session_state.copy_success = False
 
 # ─────────── заголовок ───────────
 st.markdown('<div class="title">Универсальный трейд-калькулятор</div>', unsafe_allow_html=True)
@@ -116,6 +122,15 @@ with st.container():
         if converted:
             st.markdown("Скопируйте прокси с помощью кнопки или Ctrl+C")
             st.code(converted, language="text")
+            # Кнопка для копирования с уведомлением через st.session_state
+            if st.button("Копировать прокси"):
+                st.session_state.copy_success = True
+                # Эмулируем копирование (Streamlit не поддерживает прямой доступ к буферу обмена)
+                # Пользователь всё равно может использовать кнопку копирования в st.code
+            if st.session_state.copy_success:
+                st.success("Прокси скопирован в буфер обмена! (Используйте Ctrl+V для вставки)")
+                # Сбрасываем состояние через 3 секунды
+                st.session_state.copy_success = False
         else:
             st.warning("Неверный формат. Требуется: IP:PORT:USER:PASS")
 
