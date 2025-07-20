@@ -1,30 +1,59 @@
-import json, streamlit.components.v1 as components, streamlit as st
+import re
 import streamlit as st
+import pandas as pd
 
+# ---------------- НАСТРОЙКА СТРАНИЦЫ ----------------
+st.set_page_config(
+    page_title="Trading Tools",
+    layout="wide",
+    page_icon="🧮"
+)
 
-# ─────────── базовые настройки ───────────
-st.set_page_config(page_title="🧮 Трейд-калькулятор", layout="centered")
-
-# ─────────── стили (без вмешательства в copy-кнопку) ───────────
+# ---------------- CSS (упрощённый, без пустых блоков) ----------------
 st.markdown("""
 <style>
-body   { background-color: #0e1015; }
-
-.title { font-size:24px; font-weight:bold; color:#ffffff; margin-bottom:15px; }
-.card  { background-color:#1b1f26; padding:20px; border-radius:12px; margin-bottom:30px; }
-
-.label   { font-size:16px; font-weight:500; color:#cccccc; }
-.value   { font-size:20px; font-weight:bold; margin-top:10px; }
-.green   { color:#2ecc71; }
-.orange  { color:#f39c12; }
-.red     { color:#e74c3c; }
-.neutral { color:#bdc3c7; }
+[data-testid="stSidebar"], [data-testid="collapsedControl"] { display:none !important; }
+body, .stApp { background:#0e1015; }
+.block-container {
+    padding-top: 0.8rem;
+    max-width: 760px;
+    margin: 0 auto;
+}
+.title-main {
+    font-size:30px;
+    font-weight:700;
+    text-align:center;
+    margin:10px 0 30px;
+    color:#ffffff;
+}
+.subtitle {
+    font-size:19px;
+    font-weight:600;
+    margin-bottom:14px;
+    color:#ffffff;
+}
+.card {
+    background:#1b1f26;
+    padding:22px 26px;
+    border-radius:14px;
+    margin-bottom:26px;
+    border:1px solid #252b33;
+}
+.label { font-size:15px; font-weight:500; color:#d0d3d6; margin-top:4px; }
+.value { font-size:22px; font-weight:600; margin-top:4px; }
+.green { color:#2ecc71; }
+.orange{ color:#f39c12; }
+.red   { color:#e74c3c; }
+.neutral{color:#95a5a6;}
+/* Скрыть хедер (если хотите оставить - закомментируйте две строки ниже) */
+header[data-testid="stHeader"] { height:0px; }
+header[data-testid="stHeader"] div { display:none; }
 </style>
 """, unsafe_allow_html=True)
 
-# ─────────── функции ───────────
+# ---------------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------------
 def get_color_class(value: float, thresholds: dict, neutral_check: bool = True) -> str:
-    if neutral_check and value == 0:
+    if neutral_check and abs(value) < 1e-12:
         return "neutral"
     if value > thresholds["high"]:
         return "green"
@@ -32,107 +61,236 @@ def get_color_class(value: float, thresholds: dict, neutral_check: bool = True) 
         return "orange"
     return "red"
 
-def convert_proxy_format(proxy: str) -> str:
-    """IP:PORT:USER:PASS → http://USER:PASS@IP:PORT"""
-    parts = proxy.strip().split(":")
-    if len(parts) == 4:
-        ip, port, user, password = parts
-        return f"http://{user}:{password}@{ip}:{port}"
+def normalize_proxy(raw: str) -> str:
+    """Нормализует строку прокси в формат http://user:pass@ip:port.
+       Поддерживаемые входы: IP:PORT:USER:PASS или USER:PASS@IP:PORT (с optional http://)."""
+    if not raw:
+        return ""
+    raw = raw.strip()
+    raw = raw.replace("http://", "").replace("https://", "").replace(" ", "")
+    # USER:PASS@IP:PORT
+    m = re.match(r'^([^:@]+):([^:@]+)@([0-9a-zA-Z\.\-]+):(\d+)$', raw)
+    if m:
+        user, pwd, ip, port = m.groups()
+        return f"http://{user}:{pwd}@{ip}:{port}"
+    # IP:PORT:USER:PASS
+    m = re.match(r'^([0-9a-zA-Z\.\-]+):(\d+):([^:@]+):([^:@]+)$', raw)
+    if m:
+        ip, port, user, pwd = m.groups()
+        return f"http://{user}:{pwd}@{ip}:{port}"
     return ""
 
-# ─────────── подготовка session_state ───────────
 if "converted_proxy" not in st.session_state:
     st.session_state["converted_proxy"] = ""
 
-# ─────────── заголовок ───────────
-st.markdown('<div class="title">📦 Универсальный трейд-калькулятор</div>', unsafe_allow_html=True)
+# ---------------- ВКЛАДКИ ----------------
+tab_calc, tab_buff, tab_about = st.tabs(["🧮 Калькулятор", "💱 BUFF163 CSV", "ℹ️ О программе"])
 
-# ─────────── блок «Комиссия / Прибыль» ───────────
-platform = st.radio(
-    "Выберите площадку:",
-    ["Buff163 (10 %)", "CS.MONEY (15 %)", "Своя комиссия"],
-    horizontal=True
-)
+# =====================================================================
+# ВКЛАДКА 1: КАЛЬКУЛЯТОР
+# =====================================================================
+with tab_calc:
+    st.markdown('<div class="title-main">🧮 Универсальный трейд‑калькулятор</div>', unsafe_allow_html=True)
 
-fee = 10.0 if platform == "Buff163 (10 %)" else 15.0
-if platform == "Своя комиссия":
-    fee = st.number_input("🛠 Ваша комиссия (%)", value=15.0, step=0.1)
+    # ----- Комиссия / Прибыль -----
+    with st.container():
+        #st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="subtitle">📊 Комиссия / Прибыль</div>', unsafe_allow_html=True)
 
-buy_price  = st.number_input("🪙 Цена закупки",  value=0.0, step=0.1)
-sell_price = st.number_input("💰 Цена продажи", value=0.0, step=0.1)
+        platform = st.radio(
+            "Площадка:",
+            ["Buff163 (10%)", "CS.MONEY (15%)", "Своя комиссия"],
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+        fee = 10.0 if platform == "Buff163 (10%)" else 15.0
+        if platform == "Своя комиссия":
+            fee = st.number_input("🛠 Ваша комиссия (%)", value=15.0, step=0.1)
 
-net_profit     = (sell_price * (1 - fee / 100)) - buy_price
-profit_percent = ((net_profit / buy_price) * 100) if buy_price else 0
-color_np       = get_color_class(profit_percent, {"high": 25, "low": 10})
+        col_buy, col_sell = st.columns(2)
+        with col_buy:
+            buy_price = st.number_input("🪙 Цена закупки", value=0.0, step=0.1)
+        with col_sell:
+            sell_price = st.number_input("💰 Цена продажи", value=0.0, step=0.1)
 
-st.markdown(f'<div class="label">📊 Чистая прибыль:</div>'
-            f'<div class="value {color_np}">{net_profit:.2f} $</div>', unsafe_allow_html=True)
-st.markdown(f'<div class="label">📈 Доходность:</div>'
-            f'<div class="value">{profit_percent:.2f}%</div>', unsafe_allow_html=True)
-
-# ─────────── блок «Изменение цены» ───────────
-with st.container():
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="title">📊 Изменение цены</div>', unsafe_allow_html=True)
-
-    old_price = st.number_input("🔙 Было ($)",  value=0.0, step=0.1, key="old_price")
-    new_price = st.number_input("🔜 Стало ($)", value=0.0, step=0.1, key="new_price")
-
-    if old_price > 0:
-        delta          = new_price - old_price
-        percent_change = (delta / old_price) * 100
-        color_pc       = get_color_class(percent_change, {"high": 15, "low": 5})
+        net_profit = (sell_price * (1 - fee / 100)) - buy_price
+        profit_percent = (net_profit / buy_price * 100) if buy_price else 0.0
+        color_np = get_color_class(profit_percent, {"high": 25, "low": 10})
 
         st.markdown(
-            f'<div class="value {color_pc}">'
-            f'{new_price:.2f}$ // {percent_change:.2f}% // {delta:+.2f}$'
-            f'</div>',
+            f'<div class="label">Чистая прибыль:</div>'
+            f'<div class="value {color_np}">{net_profit:.2f} $</div>',
             unsafe_allow_html=True
         )
-
-        # ── с комиссией 5 % ──
-        fee_percent = 5.0
-        adj_price   = new_price * (1 - fee_percent / 100)
-        delta_fee   = adj_price - old_price
-        percent_fee = (delta_fee / old_price) * 100
-        color_fee   = get_color_class(percent_fee, {"high": 15, "low": 5})
-
         st.markdown(
-            f'<div class="value {color_fee}">'
-            f'{adj_price:.2f}$ // {percent_fee:.2f}% // {delta_fee:+.2f}$ '
-            f'(с учётом комиссии {fee_percent:.0f}%)'
-            f'</div>',
+            f'<div class="label">Доходность:</div>'
+            f'<div class="value">{profit_percent:.2f}%</div>',
             unsafe_allow_html=True
         )
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    # ----- Изменение цены -----
+    with st.container():
+        #st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="subtitle">📈 Изменение цены</div>', unsafe_allow_html=True)
 
-# ─────────── блок «Конвертация прокси» ───────────
-with st.container():
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="title">🔄 Конвертация прокси под MarketApp</div>', unsafe_allow_html=True)
+        old_price = st.number_input("🔙 Было ($)", value=0.0, step=0.1, key="old_price_main")
+        new_price = st.number_input("🔜 Стало ($)", value=0.0, step=0.1, key="new_price_main")
 
-    proxy_input = st.text_input(
-        "🧩 Введите прокси (IP:PORT:USER:PASS)",
-        placeholder="185.239.137.172:8000:4zF6NZ:CYCU7u",
-        key="proxy_input"
-    )
+        if old_price > 0:
+            delta = new_price - old_price
+            percent_change = (delta / old_price) * 100
+            color_pc = get_color_class(percent_change, {"high": 15, "low": 5})
 
-    if proxy_input:
-        converted = convert_proxy_format(proxy_input)
-        if converted:
-            st.session_state["converted_proxy"] = converted
-            st.code(converted, language="text")      # ← одна копир-иконка
+            st.markdown(
+                f'<div class="value {color_pc}">'
+                f'{new_price:.2f}$  //  {percent_change:.2f}%  //  {delta:+.2f}$'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+
+            fee_percent = 5.0
+            adj_price = new_price * (1 - fee_percent / 100)
+            delta_fee = adj_price - old_price
+            percent_fee = (delta_fee / old_price) * 100
+            color_fee = get_color_class(percent_fee, {"high": 15, "low": 5})
+
+            st.markdown(
+                f'<div class="value {color_fee}">'
+                f'{adj_price:.2f}$  //  {percent_fee:.2f}%  //  {delta_fee:+.2f}$ (с комиссией {fee_percent:.0f}%)'
+                f'</div>',
+                unsafe_allow_html=True
+            )
         else:
-            st.warning("❌ Неверный формат. Требуется: IP:PORT:USER:PASS")
+            st.caption("Введите значение «Было ($)» > 0, чтобы увидеть динамику.")
 
-    st.text_area(
-        "📋 Скопируйте прокси вручную или с Ctrl+C",
-        value=st.session_state["converted_proxy"],
-        height=100,
-        key="proxy_display",
-        disabled=True
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # ----- Конвертация прокси -----
+    with st.container():
+        #st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="subtitle">🔄 Конвертация прокси для MarketApp</div>', unsafe_allow_html=True)
+
+        proxy_input = st.text_input(
+            "Прокси (формат IP:PORT:USER:PASS или USER:PASS@IP:PORT)",
+            placeholder="185.239.137.172:8000:login:pass"
+        )
+
+        if proxy_input:
+            converted = normalize_proxy(proxy_input)
+            if converted:
+                st.session_state["converted_proxy"] = converted
+                st.code(converted, language="text")
+            else:
+                st.warning("❌ Неверный формат. Примеры: 1.2.3.4:8000:user:pass  ИЛИ  user:pass@1.2.3.4:8000")
+
+        # Кнопка сброса
+        reset_col = st.columns(3)[1]
+        with reset_col:
+            if st.button("♻️ Сбросить поля"):
+                for k in ["converted_proxy", "proxy_input", "old_price_main", "new_price_main"]:
+                    st.session_state.pop(k, None)
+                st.rerun()
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        '<p style="text-align:center; color:#6c737a; font-size:12px; margin-top:4px;">'
+        'Made for internal trading tooling · v1</p>',
+        unsafe_allow_html=True
     )
 
-    st.markdown('</div>', unsafe_allow_html=True)
+# =====================================================================
+# ВКЛАДКА 2: BUFF163 CSV
+# =====================================================================
+with tab_buff:
+    st.markdown('<div class="title-main">💱 BUFF163 CSV конвертер</div>', unsafe_allow_html=True)
 
+    uploaded_file = st.file_uploader("Загрузите .csv файл", type="csv")
+    exchange_rate = st.number_input("Курс CNY → USD", value=7.08, step=0.01)
+
+    if uploaded_file:
+        encodings_to_try = ['utf-8-sig', 'gb18030', 'utf-8']
+        df = None
+        last_error = ""
+        for enc in encodings_to_try:
+            try:
+                df = pd.read_csv(uploaded_file, encoding=enc)
+                break
+            except Exception as e:
+                last_error = str(e)
+
+        if df is None:
+            st.error(f"Не удалось прочитать файл. Последняя ошибка: {last_error}")
+        else:
+            st.subheader("Предпросмотр (первые 5 строк)")
+            st.dataframe(df.head())
+
+            price_candidates = ['Price', '价格', 'Цена', '價格']
+            price_col = None
+            for col in df.columns:
+                if col.strip() in price_candidates:
+                    price_col = col
+                    break
+            if not price_col:
+                for col in df.columns:
+                    if df[col].astype(str).head(15).str.contains('¥').any():
+                        price_col = col
+                        break
+
+            if not price_col:
+                st.error("Не найдена колонка с ценами.")
+            else:
+                st.info(f"Найдена колонка: **{price_col}**")
+                df['Price_clean'] = (
+                    df[price_col].astype(str)
+                      .str.replace('¥', '', regex=False)
+                      .str.replace(',', '', regex=False)
+                      .str.strip()
+                )
+                df['Price_clean'] = pd.to_numeric(df['Price_clean'], errors='coerce')
+                df['Price_usd'] = df['Price_clean'] / exchange_rate
+
+                total_cny = df['Price_clean'].sum()
+                total_usd = df['Price_usd'].sum()
+
+                st.success(f"Общая сумма: {total_cny:.2f} CNY / {total_usd:.2f} USD")
+
+                st.subheader("Пример пересчёта")
+                st.dataframe(df[[price_col, 'Price_clean', 'Price_usd']].head())
+
+                with st.expander("Дополнительная аналитика"):
+                    for gcol in ['Game', 'Status']:
+                        if gcol in df.columns:
+                            grouped = df.groupby(gcol).agg({
+                                "Количество": ("Price_clean", "count"),
+                                "Сумма_CNY": ("Price_clean", "sum"),
+                                "Сумма_USD": ("Price_usd", "sum")
+                            })
+                            st.markdown(f"**Группировка по `{gcol}`**")
+                            st.dataframe(grouped)
+
+                out_csv = df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    "⬇️ Скачать расширенный CSV",
+                    data=out_csv,
+                    file_name="buff163_converted.csv",
+                    mime="text/csv"
+                )
+
+# =====================================================================
+# ВКЛАДКА 3: О ПРОГРАММЕ
+# =====================================================================
+with tab_about:
+    st.markdown('<div class="title-main">ℹ️ О программе</div>', unsafe_allow_html=True)
+    st.markdown("""
+**Содержит:**
+- 🧮 Калькулятор (комиссия, чистая прибыль, изменение цены)
+- 🔄 Конвертер прокси
+- 💱 Анализ BUFF163 CSV (CNY → USD)
+
+**Идеи развития:**
+- История расчётов
+- Пакетный расчёт нескольких комиссий
+- Автоподгрузка курса через API
+""")
