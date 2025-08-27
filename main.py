@@ -9,7 +9,7 @@ st.set_page_config(
     page_icon="🧮"
 )
 
-# ---------------- CSS (упрощённый, без пустых блоков) ----------------
+# ---------------- CSS ----------------
 st.markdown("""
 <style>
 [data-testid="stSidebar"], [data-testid="collapsedControl"] { display:none !important; }
@@ -80,8 +80,13 @@ def normalize_proxy(raw: str) -> str:
         return f"http://{user}:{pwd}@{ip}:{port}"
     return ""
 
-if "converted_proxy" not in st.session_state:
-    st.session_state["converted_proxy"] = ""
+# Инициализация session_state
+st.session_state.setdefault("converted_proxy", "")
+st.session_state.setdefault("proxy_input", "")
+st.session_state.setdefault("old_price_main", 0.0)
+st.session_state.setdefault("new_price_main", 0.0)
+st.session_state.setdefault("buy_price", 0.0)
+st.session_state.setdefault("sell_price", 0.0)
 
 # ---------------- ВКЛАДКИ ----------------
 tab_calc, tab_buff, tab_about = st.tabs(["🧮 Калькулятор", "💱 BUFF163 CSV", "ℹ️ О программе"])
@@ -90,28 +95,29 @@ tab_calc, tab_buff, tab_about = st.tabs(["🧮 Калькулятор", "💱 BU
 # ВКЛАДКА 1: КАЛЬКУЛЯТОР
 # =====================================================================
 with tab_calc:
-    st.markdown('<div class="title-main">🧮 Универсальный трейд‑калькулятор</div>', unsafe_allow_html=True)
+    st.markdown('<div class="title-main">🧮 Универсальный трейд-калькулятор</div>', unsafe_allow_html=True)
 
     # ----- Комиссия / Прибыль -----
     with st.container():
-        #st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown('<div class="subtitle">📊 Комиссия / Прибыль</div>', unsafe_allow_html=True)
 
         platform = st.radio(
             "Площадка:",
             ["Buff163 (10%)", "CS.MONEY (15%)", "Своя комиссия"],
             horizontal=True,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="platform_choice"
         )
         fee = 10.0 if platform == "Buff163 (10%)" else 15.0
         if platform == "Своя комиссия":
-            fee = st.number_input("🛠 Ваша комиссия (%)", value=15.0, step=0.1)
+            fee = st.number_input("🛠 Ваша комиссия (%)", value=15.0, step=0.1, key="custom_fee")
 
         col_buy, col_sell = st.columns(2)
         with col_buy:
-            buy_price = st.number_input("🪙 Цена закупки", value=0.0, step=0.1)
+            buy_price = st.number_input("🪙 Цена закупки", value=st.session_state["buy_price"], step=0.1, key="buy_price")
         with col_sell:
-            sell_price = st.number_input("💰 Цена продажи", value=0.0, step=0.1)
+            sell_price = st.number_input("💰 Цена продажи", value=st.session_state["sell_price"], step=0.1, key="sell_price")
 
         net_profit = (sell_price * (1 - fee / 100)) - buy_price
         profit_percent = (net_profit / buy_price * 100) if buy_price else 0.0
@@ -131,11 +137,11 @@ with tab_calc:
 
     # ----- Изменение цены -----
     with st.container():
-        #st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown('<div class="subtitle">📈 Изменение цены</div>', unsafe_allow_html=True)
 
-        old_price = st.number_input("🔙 Было ($)", value=0.0, step=0.1, key="old_price_main")
-        new_price = st.number_input("🔜 Стало ($)", value=0.0, step=0.1, key="new_price_main")
+        old_price = st.number_input("🔙 Было ($)", value=st.session_state["old_price_main"], step=0.1, key="old_price_main")
+        new_price = st.number_input("🔜 Стало ($)", value=st.session_state["new_price_main"], step=0.1, key="new_price_main")
 
         if old_price > 0:
             delta = new_price - old_price
@@ -149,6 +155,7 @@ with tab_calc:
                 unsafe_allow_html=True
             )
 
+            # Комиссия для корректировки цены — используем ту же fee или задайте отдельный инпут при желании
             fee_percent = 5.0
             adj_price = new_price * (1 - fee_percent / 100)
             delta_fee = adj_price - old_price
@@ -168,12 +175,13 @@ with tab_calc:
 
     # ----- Конвертация прокси -----
     with st.container():
-        #st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown('<div class="subtitle">🔄 Конвертация прокси для MarketApp</div>', unsafe_allow_html=True)
 
         proxy_input = st.text_input(
             "Прокси (формат IP:PORT:USER:PASS или USER:PASS@IP:PORT)",
-            placeholder="185.239.137.172:8000:login:pass"
+            placeholder="185.239.137.172:8000:login:pass",
+            key="proxy_input"
         )
 
         if proxy_input:
@@ -184,12 +192,17 @@ with tab_calc:
             else:
                 st.warning("❌ Неверный формат. Примеры: 1.2.3.4:8000:user:pass  ИЛИ  user:pass@1.2.3.4:8000")
 
-        # Кнопка сброса
+        # Кнопка сброса — центрируем
         reset_col = st.columns(3)[1]
         with reset_col:
-            if st.button("♻️ Сбросить поля"):
-                for k in ["converted_proxy", "proxy_input", "old_price_main", "new_price_main"]:
-                    st.session_state.pop(k, None)
+            if st.button("♻️ Сбросить поля", use_container_width=True, key="reset_btn"):
+                # ЯВНО обнуляем все поля, которые хотим очистить
+                st.session_state["converted_proxy"] = ""
+                st.session_state["proxy_input"] = ""
+                st.session_state["old_price_main"] = 0.0
+                st.session_state["new_price_main"] = 0.0
+                st.session_state["buy_price"] = 0.0
+                st.session_state["sell_price"] = 0.0
                 st.rerun()
 
         st.markdown('</div>', unsafe_allow_html=True)
@@ -206,8 +219,8 @@ with tab_calc:
 with tab_buff:
     st.markdown('<div class="title-main">💱 BUFF163 CSV конвертер</div>', unsafe_allow_html=True)
 
-    uploaded_file = st.file_uploader("Загрузите .csv файл", type="csv")
-    exchange_rate = st.number_input("Курс CNY → USD", value=7.08, step=0.01)
+    uploaded_file = st.file_uploader("Загрузите .csv файл", type="csv", key="csv_uploader")
+    exchange_rate = st.number_input("Курс CNY → USD", value=7.08, step=0.01, key="exchange_rate")
 
     if uploaded_file:
         encodings_to_try = ['utf-8-sig', 'gb18030', 'utf-8']
@@ -245,14 +258,16 @@ with tab_buff:
                 df['Price_clean'] = (
                     df[price_col].astype(str)
                       .str.replace('¥', '', regex=False)
+                      .str.replace('￥', '', regex=False)
                       .str.replace(',', '', regex=False)
+                      .str.replace('\u00a0', '', regex=False)
                       .str.strip()
                 )
                 df['Price_clean'] = pd.to_numeric(df['Price_clean'], errors='coerce')
                 df['Price_usd'] = df['Price_clean'] / exchange_rate
 
-                total_cny = df['Price_clean'].sum()
-                total_usd = df['Price_usd'].sum()
+                total_cny = df['Price_clean'].sum(skipna=True)
+                total_usd = df['Price_usd'].sum(skipna=True)
 
                 st.success(f"Общая сумма: {total_cny:.2f} CNY / {total_usd:.2f} USD")
 
@@ -262,11 +277,11 @@ with tab_buff:
                 with st.expander("Дополнительная аналитика"):
                     for gcol in ['Game', 'Status']:
                         if gcol in df.columns:
-                            grouped = df.groupby(gcol).agg({
-                                "Количество": ("Price_clean", "count"),
-                                "Сумма_CNY": ("Price_clean", "sum"),
-                                "Сумма_USD": ("Price_usd", "sum")
-                            })
+                            grouped = df.groupby(gcol).agg(
+                                Количество=("Price_clean", "count"),
+                                Сумма_CNY=("Price_clean", "sum"),
+                                Сумма_USD=("Price_usd", "sum"),
+                            )
                             st.markdown(f"**Группировка по `{gcol}`**")
                             st.dataframe(grouped)
 
@@ -275,7 +290,8 @@ with tab_buff:
                     "⬇️ Скачать расширенный CSV",
                     data=out_csv,
                     file_name="buff163_converted.csv",
-                    mime="text/csv"
+                    mime="text/csv",
+                    key="download_btn"
                 )
 
 # =====================================================================
