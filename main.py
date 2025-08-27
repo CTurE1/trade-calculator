@@ -98,80 +98,53 @@ with tab_calc:
     st.markdown('<div class="title-main">🧮 Универсальный трейд-калькулятор</div>', unsafe_allow_html=True)
 
     # ----- Комиссия / Прибыль -----
-    with st.container():
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<div class="subtitle">📊 Комиссия / Прибыль</div>', unsafe_allow_html=True)
+with st.container():
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="subtitle">📊 Комиссия / Прибыль</div>', unsafe_allow_html=True)
 
-        platform = st.radio(
-            "Площадка:",
-            ["Buff163 (10%)", "CS.MONEY (15%)", "Своя комиссия"],
-            horizontal=True,
-            label_visibility="collapsed",
-            key="platform_choice"
-        )
-        fee = 10.0 if platform == "Buff163 (10%)" else 15.0
-        if platform == "Своя комиссия":
-            fee = st.number_input("🛠 Ваша комиссия (%)", value=15.0, step=0.1, key="custom_fee")
+    platform = st.radio(
+        "Площадка:",
+        ["Buff163 (10%)", "CS.MONEY (15%)", "Своя комиссия"],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="platform_choice"
+    )
+    fee = 10.0 if platform == "Buff163 (10%)" else 15.0
+    if platform == "Своя комиссия":
+        fee = st.number_input("🛠 Ваша комиссия (%)", value=15.0, step=0.1, key="custom_fee")
 
-        col_buy, col_sell = st.columns(2)
-        with col_buy:
-            buy_price = st.number_input("🪙 Цена закупки", value=st.session_state["buy_price"], step=0.1, key="buy_price")
-        with col_sell:
-            sell_price = st.number_input("💰 Цена продажи", value=st.session_state["sell_price"], step=0.1, key="sell_price")
+    col_buy, col_sell = st.columns(2)
 
-        net_profit = (sell_price * (1 - fee / 100)) - buy_price
-        profit_percent = (net_profit / buy_price * 100) if buy_price else 0.0
-        color_np = get_color_class(profit_percent, {"high": 25, "low": 10})
+    def parse_float(val: str) -> float:
+        try:
+            return float(val.replace(",", "."))
+        except ValueError:
+            return 0.0
 
-        st.markdown(
-            f'<div class="label">Чистая прибыль:</div>'
-            f'<div class="value {color_np}">{net_profit:.2f} $</div>',
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            f'<div class="label">Доходность:</div>'
-            f'<div class="value">{profit_percent:.2f}%</div>',
-            unsafe_allow_html=True
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
+    with col_buy:
+        buy_raw = st.text_input("🪙 Цена закупки", value="", placeholder="0.00", key="buy_raw")
+        buy_price = parse_float(buy_raw)
 
-    # ----- Изменение цены -----
-    with st.container():
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<div class="subtitle">📈 Изменение цены</div>', unsafe_allow_html=True)
+    with col_sell:
+        sell_raw = st.text_input("💰 Цена продажи", value="", placeholder="0.00", key="sell_raw")
+        sell_price = parse_float(sell_raw)
 
-        old_price = st.number_input("🔙 Было ($)", value=st.session_state["old_price_main"], step=0.1, key="old_price_main")
-        new_price = st.number_input("🔜 Стало ($)", value=st.session_state["new_price_main"], step=0.1, key="new_price_main")
+    net_profit = (sell_price * (1 - fee / 100)) - buy_price
+    profit_percent = (net_profit / buy_price * 100) if buy_price else 0.0
+    color_np = get_color_class(profit_percent, {"high": 25, "low": 10})
 
-        if old_price > 0:
-            delta = new_price - old_price
-            percent_change = (delta / old_price) * 100
-            color_pc = get_color_class(percent_change, {"high": 15, "low": 5})
+    st.markdown(
+        f'<div class="label">Чистая прибыль:</div>'
+        f'<div class="value {color_np}">{net_profit:.2f} $</div>',
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        f'<div class="label">Доходность:</div>'
+        f'<div class="value">{profit_percent:.2f}%</div>',
+        unsafe_allow_html=True
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
 
-            st.markdown(
-                f'<div class="value {color_pc}">'
-                f'{new_price:.2f}$  //  {percent_change:.2f}%  //  {delta:+.2f}$'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-
-            # Комиссия для корректировки цены — используем ту же fee или задайте отдельный инпут при желании
-            fee_percent = 5.0
-            adj_price = new_price * (1 - fee_percent / 100)
-            delta_fee = adj_price - old_price
-            percent_fee = (delta_fee / old_price) * 100
-            color_fee = get_color_class(percent_fee, {"high": 15, "low": 5})
-
-            st.markdown(
-                f'<div class="value {color_fee}">'
-                f'{adj_price:.2f}$  //  {percent_fee:.2f}%  //  {delta_fee:+.2f}$ (с комиссией {fee_percent:.0f}%)'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-        else:
-            st.caption("Введите значение «Было ($)» > 0, чтобы увидеть динамику.")
-
-        st.markdown('</div>', unsafe_allow_html=True)
 
     # ----- Конвертация прокси -----
     with st.container():
