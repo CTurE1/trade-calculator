@@ -51,7 +51,7 @@ header[data-testid="stHeader"] div { display:none; }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------------
+# ---------------- УТИЛИТЫ ----------------
 def get_color_class(value: float, thresholds: dict, neutral_check: bool = True) -> str:
     if neutral_check and abs(value) < 1e-12:
         return "neutral"
@@ -63,7 +63,7 @@ def get_color_class(value: float, thresholds: dict, neutral_check: bool = True) 
 
 def normalize_proxy(raw: str) -> str:
     """Нормализует строку прокси в формат http://user:pass@ip:port.
-       Поддерживаемые входы: IP:PORT:USER:PASS или USER:PASS@IP:PORT (с optional http://)."""
+       Поддерживаемые входы: IP:PORT:USER:PASS или USER:PASS@IP:PORT (с optional http:///https://)."""
     if not raw:
         return ""
     raw = raw.strip()
@@ -80,13 +80,24 @@ def normalize_proxy(raw: str) -> str:
         return f"http://{user}:{pwd}@{ip}:{port}"
     return ""
 
-# Инициализация session_state
+def parse_float(val: str) -> float:
+    """Парсит строку числа. Поддерживает запятую и лишние пробелы. Пусто/некорректно -> 0.0"""
+    if val is None:
+        return 0.0
+    try:
+        return float(str(val).replace("\u00a0", "").replace(" ", "").replace(",", "."))
+    except ValueError:
+        return 0.0
+
+# ---------------- ИНИЦИАЛИЗАЦИЯ STATE ----------------
 st.session_state.setdefault("converted_proxy", "")
 st.session_state.setdefault("proxy_input", "")
-st.session_state.setdefault("old_price_main", 0.0)
-st.session_state.setdefault("new_price_main", 0.0)
-st.session_state.setdefault("buy_price", 0.0)
-st.session_state.setdefault("sell_price", 0.0)
+
+# текстовые поля для калькулятора (можно очищать)
+st.session_state.setdefault("buy_raw", "")
+st.session_state.setdefault("sell_raw", "")
+st.session_state.setdefault("old_raw", "")
+st.session_state.setdefault("new_raw", "")
 
 # ---------------- ВКЛАДКИ ----------------
 tab_calc, tab_buff, tab_about = st.tabs(["🧮 Калькулятор", "💱 BUFF163 CSV", "ℹ️ О программе"])
@@ -98,53 +109,86 @@ with tab_calc:
     st.markdown('<div class="title-main">🧮 Универсальный трейд-калькулятор</div>', unsafe_allow_html=True)
 
     # ----- Комиссия / Прибыль -----
-with st.container():
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="subtitle">📊 Комиссия / Прибыль</div>', unsafe_allow_html=True)
+    with st.container():
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="subtitle">📊 Комиссия / Прибыль</div>', unsafe_allow_html=True)
 
-    platform = st.radio(
-        "Площадка:",
-        ["Buff163 (10%)", "CS.MONEY (15%)", "Своя комиссия"],
-        horizontal=True,
-        label_visibility="collapsed",
-        key="platform_choice"
-    )
-    fee = 10.0 if platform == "Buff163 (10%)" else 15.0
-    if platform == "Своя комиссия":
-        fee = st.number_input("🛠 Ваша комиссия (%)", value=15.0, step=0.1, key="custom_fee")
+        platform = st.radio(
+            "Площадка:",
+            ["Buff163 (10%)", "CS.MONEY (15%)", "Своя комиссия"],
+            horizontal=True,
+            label_visibility="collapsed",
+            key="platform_choice"
+        )
+        fee = 10.0 if platform == "Buff163 (10%)" else 15.0
+        if platform == "Своя комиссия":
+            fee = st.number_input("🛠 Ваша комиссия (%)", value=15.0, step=0.1, key="custom_fee")
 
-    col_buy, col_sell = st.columns(2)
+        col_buy, col_sell = st.columns(2)
+        with col_buy:
+            buy_raw = st.text_input("🪙 Цена закупки", value=st.session_state["buy_raw"], placeholder="0.00", key="buy_raw")
+            buy_price = parse_float(buy_raw)
+        with col_sell:
+            sell_raw = st.text_input("💰 Цена продажи", value=st.session_state["sell_raw"], placeholder="0.00", key="sell_raw")
+            sell_price = parse_float(sell_raw)
 
-    def parse_float(val: str) -> float:
-        try:
-            return float(val.replace(",", "."))
-        except ValueError:
-            return 0.0
+        net_profit = (sell_price * (1 - fee / 100)) - buy_price
+        profit_percent = (net_profit / buy_price * 100) if buy_price else 0.0
+        color_np = get_color_class(profit_percent, {"high": 25, "low": 10})
 
-    with col_buy:
-        buy_raw = st.text_input("🪙 Цена закупки", value="", placeholder="0.00", key="buy_raw")
-        buy_price = parse_float(buy_raw)
+        st.markdown(
+            f'<div class="label">Чистая прибыль:</div>'
+            f'<div class="value {color_np}">{net_profit:.2f} $</div>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            f'<div class="label">Доходность:</div>'
+            f'<div class="value">{profit_percent:.2f}%</div>',
+            unsafe_allow_html=True
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_sell:
-        sell_raw = st.text_input("💰 Цена продажи", value="", placeholder="0.00", key="sell_raw")
-        sell_price = parse_float(sell_raw)
+    # ----- Изменение цены -----
+    with st.container():
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="subtitle">📈 Изменение цены</div>', unsafe_allow_html=True)
 
-    net_profit = (sell_price * (1 - fee / 100)) - buy_price
-    profit_percent = (net_profit / buy_price * 100) if buy_price else 0.0
-    color_np = get_color_class(profit_percent, {"high": 25, "low": 10})
+        col_old, col_new = st.columns(2)
+        with col_old:
+            old_raw = st.text_input("🔙 Было ($)", value=st.session_state["old_raw"], placeholder="0.00", key="old_raw")
+            old_price = parse_float(old_raw)
+        with col_new:
+            new_raw = st.text_input("🔜 Стало ($)", value=st.session_state["new_raw"], placeholder="0.00", key="new_raw")
+            new_price = parse_float(new_raw)
 
-    st.markdown(
-        f'<div class="label">Чистая прибыль:</div>'
-        f'<div class="value {color_np}">{net_profit:.2f} $</div>',
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        f'<div class="label">Доходность:</div>'
-        f'<div class="value">{profit_percent:.2f}%</div>',
-        unsafe_allow_html=True
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+        if old_price > 0:
+            delta = new_price - old_price
+            percent_change = (delta / old_price) * 100
+            color_pc = get_color_class(percent_change, {"high": 15, "low": 5})
 
+            st.markdown(
+                f'<div class="value {color_pc}">'
+                f'{new_price:.2f}$  //  {percent_change:.2f}%  //  {delta:+.2f}$'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+
+            fee_percent = 5.0  # отдельная «условная» комиссия для примера
+            adj_price = new_price * (1 - fee_percent / 100)
+            delta_fee = adj_price - old_price
+            percent_fee = (delta_fee / old_price) * 100
+            color_fee = get_color_class(percent_fee, {"high": 15, "low": 5})
+
+            st.markdown(
+                f'<div class="value {color_fee}">'
+                f'{adj_price:.2f}$  //  {percent_fee:.2f}%  //  {delta_fee:+.2f}$ (с комиссией {fee_percent:.0f}%)'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+        else:
+            st.caption("Введите значение «Было ($)» > 0, чтобы увидеть динамику.")
+
+        st.markdown('</div>', unsafe_allow_html=True)
 
     # ----- Конвертация прокси -----
     with st.container():
@@ -165,17 +209,17 @@ with st.container():
             else:
                 st.warning("❌ Неверный формат. Примеры: 1.2.3.4:8000:user:pass  ИЛИ  user:pass@1.2.3.4:8000")
 
-        # Кнопка сброса — центрируем
+        # Кнопка сброса — по центру
         reset_col = st.columns(3)[1]
         with reset_col:
             if st.button("♻️ Сбросить поля", use_container_width=True, key="reset_btn"):
                 # ЯВНО обнуляем все поля, которые хотим очистить
                 st.session_state["converted_proxy"] = ""
                 st.session_state["proxy_input"] = ""
-                st.session_state["old_price_main"] = 0.0
-                st.session_state["new_price_main"] = 0.0
-                st.session_state["buy_price"] = 0.0
-                st.session_state["sell_price"] = 0.0
+                st.session_state["buy_raw"] = ""
+                st.session_state["sell_raw"] = ""
+                st.session_state["old_raw"] = ""
+                st.session_state["new_raw"] = ""
                 st.rerun()
 
         st.markdown('</div>', unsafe_allow_html=True)
@@ -233,7 +277,7 @@ with tab_buff:
                       .str.replace('¥', '', regex=False)
                       .str.replace('￥', '', regex=False)
                       .str.replace(',', '', regex=False)
-                      .str.replace('\u00a0', '', regex=False)
+                      .str.replace('\u00a0', '', regex=False)  # неразрывный пробел
                       .str.strip()
                 )
                 df['Price_clean'] = pd.to_numeric(df['Price_clean'], errors='coerce')
